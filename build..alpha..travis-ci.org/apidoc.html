@@ -1,0 +1,173 @@
+<div class="apidocDiv">
+<style>
+/*csslint
+*/
+.apidocDiv {
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.apidocDiv a[href] {
+    color: #33f;
+    font-weight: bold;
+    text-decoration: none;
+}
+.apidocDiv a[href]:hover {
+    text-decoration: underline;
+}
+.apidocCodeCommentSpan {
+    background: #bbf;
+    color: #000;
+    display: block;
+}
+.apidocCodeKeywordSpan {
+    color: #d00;
+    font-weight: bold;
+}
+.apidocCodePre {
+    background: #eef;
+    border: 1px solid;
+    color: #777;
+    padding: 5px;
+    white-space: pre-wrap;
+}
+.apidocFooterDiv {
+    margin-top: 20px;
+    text-align: center;
+}
+.apidocModuleLi {
+    margin-top: 10px;
+}
+.apidocSectionDiv {
+    border-top: 1px solid;
+    margin-top: 20px;
+}
+.apidocSignatureSpan {
+    color: #777;
+    font-weight: bold;
+}
+</style>
+<h1>api documentation for
+    <a
+
+        href="https://bitbucket.org/amctheatres/babel-transform-imports"
+
+    >babel-plugin-transform-imports (v1.2.0)</a>
+</h1>
+<h4>Transforms member style imports (import {x} from 'y') into default style imports (import x from 'y/lib/x')</h4>
+<div class="apidocSectionDiv"><a
+    href="#apidoc.tableOfContents"
+    id="apidoc.tableOfContents"
+><h1>table of contents</h1></a><ol>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.babel-plugin-transform-imports">module babel-plugin-transform-imports</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.babel-plugin-transform-imports.babel-plugin-transform-imports">
+            function <span class="apidocSignatureSpan"></span>babel-plugin-transform-imports
+            <span class="apidocSignatureSpan">()</span>
+            </a>
+
+        </li>
+
+    </ol></li>
+
+</ol></div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.babel-plugin-transform-imports" id="apidoc.module.babel-plugin-transform-imports">module babel-plugin-transform-imports</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.babel-plugin-transform-imports.babel-plugin-transform-imports" id="apidoc.element.babel-plugin-transform-imports.babel-plugin-transform-imports">
+        function <span class="apidocSignatureSpan"></span>babel-plugin-transform-imports
+        <span class="apidocSignatureSpan">()</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">babel-plugin-transform-imports = function () {
+    return {
+        visitor: {
+            ImportDeclaration: function (path, state) {
+                // https://github.com/babel/babel/tree/master/packages/babel-types#timportdeclarationspecifiers-source
+
+                // path.node has properties &#x27;source&#x27; and &#x27;specifiers&#x27; attached.
+                // path.node.source is the library/module name, aka &#x27;react-bootstrap&#x27;.
+                // path.node.specifiers is an array of ImportSpecifier | ImportDefaultSpecifier | ImportNamespaceSpecifier
+
+                if (path.node.source.value in state.opts) {
+                    var source = path.node.source.value;
+                    var opts = state.opts[source];
+
+                    if (!opts.transform) {
+                        barf(&#x27;transform option is required for module &#x27; + source);
+                    }
+
+                    var transforms = [];
+
+                    var fullImports = path.node.specifiers.filter(function(specifier) { return specifier.type !== &#x27;ImportSpecifier
+&#x27; });
+                    var memberImports = path.node.specifiers.filter(function(specifier) { return specifier.type === &#x27;ImportSpecifier
+&#x27; });
+
+                    if (fullImports.length &#x3e; 0) {
+                        // Examples of &#x22;full&#x22; imports:
+                        //      import * as name from &#x27;module&#x27;; (ImportNamespaceSpecifier)
+                        //      import name from &#x27;module&#x27;; (ImportDefaultSpecifier)
+
+                        if (opts.preventFullImport) {
+                            barf(&#x27;import of entire module &#x27; + source + &#x27; not allowed due to preventFullImport setting&#x27;);
+                        }
+
+                        if (memberImports.length &#x3e; 0) {
+                            // Swap out the import with one that doesn&#x27;t include member imports.  Member imports should each get
+ their own import line
+                            // transform this:
+                            //      import Bootstrap, { Grid } from &#x27;react-bootstrap&#x27;;
+                            // into this:
+                            //      import Bootstrap from &#x27;react-bootstrap&#x27;;
+                            transforms.push(types.importDeclaration(fullImports, types.stringLiteral(source)));
+                        }
+                    }
+
+                    memberImports.forEach(function(memberImport) {
+                        // Examples of member imports:
+                        //      import { member } from &#x27;module&#x27;; (ImportSpecifier)
+                        //      import { member as alias } from &#x27;module&#x27; (ImportSpecifier)
+
+                        // transform this:
+                        //      import { Grid as gird } from &#x27;react-bootstrap&#x27;;
+                        // into this:
+                        //      import gird from &#x27;react-bootstrap/lib/Grid&#x27;;
+
+                        var importName = memberImport.imported.name;
+                        if (opts.kebabCase) importName = kebab(importName);
+
+                        var replace = transform(opts.transform, importName);
+
+                        transforms.push(types.importDeclaration(
+                            [types.importDefaultSpecifier(types.identifier(memberImport.local.name))],
+                            types.stringLiteral(replace)
+                        ));
+                    });
+
+                    if (transforms.length &#x3e; 0) {
+                        path.replaceWithMultiple(transforms);
+                    }
+                }
+            }
+        }
+    }
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+</div>
+
+<div class="apidocFooterDiv">
+    [ this document was created with
+    <a href="https://github.com/kaizhu256/node-utility2" target="_blank">utility2</a>
+    ]
+</div>
+</div>
